@@ -18,30 +18,30 @@
 
 ---
 
-## 🎯 Project Overview
+##  Project Overview
 
 This system is a complete, production-ready **Factory Compliance & Alert Escalation System** that bridges three critical domains:
 
 | Domain | Technology | Purpose |
 |--------|-----------|---------|
-| 👁️ **Computer Vision** | Google Gemini 1.5 Flash | Detect violations in video frames |
-| 🧠 **NLP / Document AI** | Gemini + PyMuPDF | Parse OHS policy PDF into structured rules |
-| ⚡ **Real-time Workflow** | FastAPI + WebSocket | Route alerts based on risk severity |
+| **Computer Vision** | Google Gemini 1.5 Flash | Detect violations in video frames |
+|  **NLP / Document AI** | Gemini + PyMuPDF | Parse OHS policy PDF into structured rules |
+|  **Real-time Workflow** | FastAPI + WebSocket | Route alerts based on risk severity |
 
 The system automatically monitors factory video footage, cross-references observed behavior against a formal OHS Compliance Policy Manual, and triggers real-time alerts — all without any manual intervention.
 
 ---
 
-## ✨ Features
+##  Features
 
-- 🎬 **Video Ingestion** — Upload any factory video clip for instant compliance analysis
-- 📄 **AI Policy Parsing** — Automatically extracts compliance rules from PDF using Gemini AI
-- 🔍 **Zero-Shot Detection** — Detects violations without any labeled training data
-- 🚨 **Real-Time Alerts** — WebSocket-powered live alerts for HIGH/CRITICAL violations
-- 📊 **Severity Classification** — 4-tier risk system (LOW → MEDIUM → HIGH → CRITICAL)
-- 📋 **Automated Reports** — Immutable compliance records in JSON + CSV + SQLite
-- 🖥️ **Live Dashboard** — Real-time operations center with 3 functional views
-- 📤 **Export Ready** — Download filtered audit logs in CSV or JSON format
+-  **Video Ingestion** — Upload any factory video clip for instant compliance analysis
+- **AI Policy Parsing** — Automatically extracts compliance rules from PDF using Gemini AI
+-  **Zero-Shot Detection** — Detects violations without any labeled training data
+-  **Real-Time Alerts** — WebSocket-powered live alerts for HIGH/CRITICAL violations
+- **Severity Classification** — 4-tier risk system (LOW → MEDIUM → HIGH → CRITICAL)
+-  **Automated Reports** — Immutable compliance records in JSON + CSV + SQLite
+- **Live Dashboard** — Real-time operations center with 3 functional views
+-  **Export Ready** — Download filtered audit logs in CSV or JSON format
 
 ---
 
@@ -188,10 +188,10 @@ Single-file HTML dashboard with no build step required.
 
 | View | Description |
 |------|-------------|
-| 📹 **Live Feed Monitor** | Drag-drop video upload, real-time processing results with severity color coding |
-| ⚡ **Alert Timeline** | Chronological stream of all events, filterable by severity & behavior class |
-| 📋 **Historical Log** | Full audit log with date range filters + CSV/JSON export |
-| 📄 **Policy Rules** | Displays AI-extracted compliance rules from the policy document |
+| **Live Feed Monitor** | Drag-drop video upload, real-time processing results with severity color coding |
+|  **Alert Timeline** | Chronological stream of all events, filterable by severity & behavior class |
+|  **Historical Log** | Full audit log with date range filters + CSV/JSON export |
+|  **Policy Rules** | Displays AI-extracted compliance rules from the policy document |
 
 ---
 
@@ -246,7 +246,7 @@ data/
 py main.py
 ```
 
-Backend starts at `http://localhost:8000` ✅
+Backend starts at `http://localhost:8000` 
 
 ### 6. Open Dashboard
 
@@ -254,7 +254,7 @@ Open `src/dashboard/index.html` in your browser and start uploading video clips!
 
 ---
 
-## 🌐 API Reference
+##  API Reference
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -301,14 +301,14 @@ curl -X POST http://localhost:8000/api/process-clip \
 
 | Layer | Technology | Purpose |
 |-------|-----------|---------|
-| 🤖 AI / Vision | Google Gemini 1.5 Flash | Policy parsing + video analysis |
-| 🎬 Video Processing | OpenCV | Frame extraction |
-| 📄 PDF Parsing | PyMuPDF | Policy document text extraction |
-| ⚡ Backend | FastAPI + Uvicorn | REST API + WebSocket server |
-| 🗄️ Database | SQLite + aiosqlite | Async compliance log storage |
-| 🔴 Real-time | WebSocket | Live alert broadcasting |
-| 🖥️ Dashboard | HTML + Vanilla JS | No-build operations UI |
-| 📊 Reports | JSON + CSV | Immutable audit trail |
+|  AI / Vision | Google Gemini 1.5 Flash | Policy parsing + video analysis |
+|  Video Processing | OpenCV | Frame extraction |
+|  PDF Parsing | PyMuPDF | Policy document text extraction |
+|  Backend | FastAPI + Uvicorn | REST API + WebSocket server |
+| Database | SQLite + aiosqlite | Async compliance log storage |
+| Real-time | WebSocket | Live alert broadcasting |
+| Dashboard | HTML + Vanilla JS | No-build operations UI |
+| Reports | JSON + CSV | Immutable audit trail |
 
 ---
 
@@ -318,25 +318,25 @@ Defined in `KMP-OHS-POL-001`:
 
 ```
 Class 0 — Pedestrian Movement
-  ✅ Safe:   Person within green floor markings
-  ❌ Unsafe: Person outside green floor markings (Safe Walkway Violation)
+  Safe:   Person within green floor markings
+  Unsafe: Person outside green floor markings (Safe Walkway Violation)
 
 Class 1 — Equipment Interaction  
-  ✅ Safe:   Person with green authorization vest
-  ❌ Unsafe: Person without green vest touching equipment (Unauthorized Intervention)
+  Safe:   Person with green authorization vest
+   Unsafe: Person without green vest touching equipment (Unauthorized Intervention)
 
 Class 2 — Electrical Safety
-  ✅ Safe:   Panel cover fully closed
-  ❌ Unsafe: Panel cover left open (Opened Panel Cover)
+ Safe:   Panel cover fully closed
+Unsafe: Panel cover left open (Opened Panel Cover)
 
 Class 3 — Forklift Load Management
-  ✅ Safe:   Forklift carrying ≤ 2 blocks
-  ❌ Unsafe: Forklift carrying ≥ 3 blocks (Carrying Overload)
+  Safe:   Forklift carrying ≤ 2 blocks
+ Unsafe: Forklift carrying ≥ 3 blocks (Carrying Overload)
 ```
 
 ---
 
-## 🙏 Acknowledgements
+## Acknowledgements
 
 - Dataset: [Video Dataset for Safe and Unsafe Behaviours](https://www.kaggle.com/datasets/trnhhnggiang/videodataset-for-safe-and-unsafe-behaviours) by Trịnh Hương Giang
 - Policy Document: KMP-OHS-POL-001 — Kafaoglu Metal Plastik Makine San. ve Tic. A.Ş.
@@ -347,6 +347,6 @@ Class 3 — Forklift Load Management
 <div align="center">
 
 **Submitted for Genesys AI Internship Assessment**  
-Made with ❤️ by Manahil Fatima
+Made  by Manahil Fatima
 
 </div>
