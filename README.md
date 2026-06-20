@@ -142,7 +142,7 @@ Displays the structured rules extracted from the policy PDF — showing behavior
 ### 1. Prerequisites
 
 - Python 3.10+
-- An Anthropic API key ([get one here](https://aistudio.google.com/apikey))
+- An Gemini key
 
 ### 2. Clone & Install
 
