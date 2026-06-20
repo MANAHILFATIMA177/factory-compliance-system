@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Factory Compliance System — Operations Dashboard</title>
+<style>
+  :root {
+    --bg: #0a0c10;
+    --surface: #111318;
+    --surface2: #1a1d24;
+    --border: #2a2d35;
+    --accent: #00d4ff;
+    --accent2: #0099bb;
+    --text: #e2e8f0;
+    --text-muted: #64748b;
+    --low: #22c55e;
+    --medium: #f59e0b;
+    --high: #ef4444;
+    --critical: #dc2626;
+    --critical-glow: rgba(220,38,38,0.4);
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+  }
+
+  /* ── Header ─────────────────────────────────────────────── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 24px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  .logo h1 { font-size: 16px; font-weight: 600; color: var(--text); }
+  .logo span { font-size: 11px; color: var(--text-muted); display: block; }
+
+  .header-right { display: flex; align-items: center; gap: 16px; }
+  .ws-badge {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; font-family: var(--font-mono);
+    color: var(--text-muted);
+  }
+  .ws-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #374151;
+    transition: background 0.3s;
+  }
+  .ws-dot.connected { background: var(--low); box-shadow: 0 0 6px var(--low); }
+  .ws-dot.alerting { background: var(--critical); animation: pulse-dot 0.5s infinite; }
+
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; } 50% { opacity: 0.3; }
+  }
+
+  /* ── Alert Banner ────────────────────────────────────────── */
+  #alert-banner {
+    display: none;
+    padding: 12px 24px;
+    background: linear-gradient(90deg, #7f1d1d, #991b1b);
+    border-bottom: 2px solid var(--critical);
+    animation: flash-banner 0.4s ease-in-out 3;
+  }
+  #alert-banner.visible { display: flex; align-items: center; gap: 12px; }
+  .alert-banner-icon { font-size: 20px; animation: spin 1s linear; }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  @keyframes flash-banner {
+    0%, 100% { background: linear-gradient(90deg, #7f1d1d, #991b1b); }
+    50% { background: linear-gradient(90deg, #dc2626, #b91c1c); }
+  }
+  #alert-banner-text { flex: 1; font-weight: 600; color: #fecaca; }
+  #alert-banner-close {
+    background: none; border: 1px solid #ef4444; color: #fca5a5;
+    padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;
+  }
+
+  /* ── Layout ─────────────────────────────────────────────── */
+  .main { display: flex; flex-direction: column; gap: 0; }
+
+  /* ── Stats Bar ───────────────────────────────────────────── */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .stat-card {
+    background: var(--surface);
+    padding: 16px 20px;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .stat-card .label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .stat-card .value { font-size: 28px; font-weight: 700; font-family: var(--font-mono); }
+  .stat-card.total .value { color: var(--accent); }
+  .stat-card.low .value { color: var(--low); }
+  .stat-card.medium .value { color: var(--medium); }
+  .stat-card.high .value { color: var(--high); }
+  .stat-card.critical .value { color: var(--critical); }
+
+  /* ── Tabs ────────────────────────────────────────────────── */
+  .tabs {
+    display: flex;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    gap: 0;
+  }
+  .tab-btn {
+    padding: 14px 20px;
+    background: none; border: none;
+    color: var(--text-muted);
+    font-size: 13px; font-weight: 500;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+  .tab-badge {
+    background: var(--border);
+    color: var(--text-muted);
+    font-size: 10px; font-weight: 600;
+    padding: 1px 6px; border-radius: 10px;
+    font-family: var(--font-mono);
+  }
+  .tab-btn.active .tab-badge { background: rgba(0,212,255,0.15); color: var(--accent); }
+
+  .tab-content { display: none; padding: 24px; }
+  .tab-content.active { display: block; }
+
+  /* ── View A: Live Feed ───────────────────────────────────── */
+  .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 48px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .upload-zone:hover, .upload-zone.dragover {
+    border-color: var(--accent);
+    background: rgba(0,212,255,0.03);
+  }
+  .upload-zone input {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%;
+  }
+  .upload-icon { font-size: 40px; margin-bottom: 12px; }
+  .upload-zone h3 { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+  .upload-zone p { color: var(--text-muted); font-size: 13px; }
+
+  .clip-results {
+    margin-top: 24px;
+    display: grid; gap: 12px;
+  }
+  .clip-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .clip-card-header {
+    padding: 14px 16px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+  .clip-name { font-weight: 600; font-size: 13px; font-family: var(--font-mono); }
+  .clip-count { font-size: 12px; color: var(--text-muted); }
+  .clip-violations { padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; }
+  .violation-row {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 10px 12px;
+    background: var(--bg);
+    border-radius: 6px;
+    border-left: 3px solid var(--border);
+  }
+  .violation-row.CRITICAL { border-left-color: var(--critical); }
+  .violation-row.HIGH { border-left-color: var(--high); }
+  .violation-row.MEDIUM { border-left-color: var(--medium); }
+  .violation-row.LOW { border-left-color: var(--low); }
+
+  .v-info { flex: 1; }
+  .v-class { font-weight: 600; font-size: 13px; }
+  .v-desc { font-size: 12px; color: var(--text-muted); margin-top: 3px; line-height: 1.5; }
+  .v-meta { font-size: 11px; color: #475569; margin-top: 4px; font-family: var(--font-mono); }
+
+  .no-violation {
+    text-align: center; padding: 24px;
+    color: var(--low); font-weight: 500;
+    background: rgba(34,197,94,0.05);
+    border-radius: 8px;
+    border: 1px solid rgba(34,197,94,0.2);
+  }
+
+  .processing-overlay {
+    text-align: center; padding: 32px;
+    color: var(--text-muted);
+  }
+  .spinner {
+    width: 32px; height: 32px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin-anim 0.8s linear infinite;
+    margin: 0 auto 12px;
+  }
+  @keyframes spin-anim { to { transform: rotate(360deg); } }
+
+  /* ── View B: Alert Timeline ──────────────────────────────── */
+  .timeline-controls {
+    display: flex; gap: 8px; margin-bottom: 16px; align-items: center;
+  }
+  .filter-select, .filter-input {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 7px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    outline: none;
+  }
+  .filter-select:focus, .filter-input:focus { border-color: var(--accent); }
+  .btn {
+    padding: 7px 14px;
+    border-radius: 6px;
+    border: none;
+    font-size: 13px; font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-primary { background: var(--accent); color: #000; }
+  .btn-primary:hover { background: var(--accent2); }
+  .btn-ghost {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+  .timeline-stream {
+    display: flex; flex-direction: column; gap: 8px;
+    max-height: 600px; overflow-y: auto;
+  }
+  .timeline-item {
+    display: flex; gap: 12px; align-items: flex-start;
+    padding: 12px 14px;
+    background: var(--surface);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    animation: slide-in 0.3s ease;
+  }
+  @keyframes slide-in {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .timeline-item.CRITICAL { border-color: rgba(220,38,38,0.4); background: rgba(220,38,38,0.05); }
+  .timeline-item.HIGH { border-color: rgba(239,68,68,0.3); }
+
+  .sev-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px; font-weight: 700;
+    font-family: var(--font-mono);
+    letter-spacing: 0.05em;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .sev-badge.LOW { background: rgba(34,197,94,0.15); color: var(--low); }
+  .sev-badge.MEDIUM { background: rgba(245,158,11,0.15); color: var(--medium); }
+  .sev-badge.HIGH { background: rgba(239,68,68,0.15); color: var(--high); }
+  .sev-badge.CRITICAL { background: rgba(220,38,38,0.2); color: #fca5a5; }
+
+  .t-body { flex: 1; }
+  .t-class { font-weight: 600; font-size: 13px; }
+  .t-desc { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+  .t-meta { font-size: 11px; color: #475569; margin-top: 4px; font-family: var(--font-mono); display: flex; gap: 12px; flex-wrap: wrap; }
+
+  .empty-state {
+    text-align: center; padding: 60px 24px;
+    color: var(--text-muted);
+  }
+  .empty-state .icon { font-size: 40px; margin-bottom: 12px; }
+
+  /* ── View C: Historical Log ──────────────────────────────── */
+  .log-controls {
+    display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center;
+  }
+  .export-btns { display: flex; gap: 6px; margin-left: auto; }
+  .btn-export {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 7px 12px;
+    border-radius: 6px;
+    font-size: 12px; font-weight: 500;
+    cursor: pointer;
+    display: flex; align-items: center; gap: 6px;
+    transition: all 0.15s;
+  }
+  .btn-export:hover { border-color: var(--accent); color: var(--accent); }
+
+  .log-table-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid var(--border); }
+  table {
+    width: 100%; border-collapse: collapse;
+    font-size: 12px;
+  }
+  th {
+    background: var(--surface2);
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(42,45,53,0.5);
+    vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface2); }
+  .td-mono { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); }
+  .td-desc { max-width: 260px; color: var(--text-muted); line-height: 1.4; }
+
+  /* ── Policy Rules Panel ──────────────────────────────────── */
+  .policy-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
+    margin-top: 0;
+  }
+  .policy-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .policy-card h4 {
+    font-size: 13px; font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .policy-row { margin-bottom: 6px; font-size: 12px; }
+  .policy-label { color: var(--text-muted); }
+  .policy-value { color: var(--text); }
+  .policy-signal {
+    display: inline-block;
+    padding: 2px 8px; border-radius: 4px;
+    font-size: 10px; font-weight: 700;
+    font-family: var(--font-mono);
+  }
+  .policy-signal.WARNING { background: rgba(245,158,11,0.15); color: var(--medium); }
+  .policy-signal.CRITICAL { background: rgba(220,38,38,0.15); color: #fca5a5; }
+
+  /* ── Responsive ──────────────────────────────────────────── */
+  @media (max-width: 900px) {
+    .stats-bar { grid-template-columns: repeat(3, 1fr); }
+    .policy-grid { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 600px) {
+    .stats-bar { grid-template-columns: repeat(2, 1fr); }
+    .tabs { padding: 0 12px; }
+    .tab-content { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Alert Banner (Module 3 real-time visual alert) -->
+<div id="alert-banner">
+  <span class="alert-banner-icon">🚨</span>
+  <div id="alert-banner-text">HIGH/CRITICAL VIOLATION DETECTED</div>
+  <button id="alert-banner-close" onclick="closeBanner()">Dismiss</button>
+</div>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🏭</div>
+    <div>
+      <h1>Compliance Operations Center</h1>
+      <span>Kafaoglu Metal Plastik — KMP-OHS-POL-001</span>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="ws-badge">
+      <div class="ws-dot" id="ws-dot"></div>
+      <span id="ws-status">Connecting…</span>
+    </div>
+    <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono)" id="live-clock"></div>
+  </div>
+</header>
+
+<!-- Stats Bar -->
+<div class="stats-bar">
+  <div class="stat-card total"><div class="label">Total Events</div><div class="value" id="stat-total">—</div></div>
+  <div class="stat-card low"><div class="label">Low</div><div class="value" id="stat-low">—</div></div>
+  <div class="stat-card medium"><div class="label">Medium</div><div class="value" id="stat-medium">—</div></div>
+  <div class="stat-card high"><div class="label">High</div><div class="value" id="stat-high">—</div></div>
+  <div class="stat-card critical"><div class="label">Critical</div><div class="value" id="stat-critical">—</div></div>
+</div>
+
+<div class="main">
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('feed')">
+      📹 Live Feed Monitor
+    </button>
+    <button class="tab-btn" onclick="switchTab('timeline')">
+      ⚡ Alert Timeline <span class="tab-badge" id="badge-timeline">0</span>
+    </button>
+    <button class="tab-btn" onclick="switchTab('log')">
+      📋 Historical Log
+    </button>
+    <button class="tab-btn" onclick="switchTab('policy')">
+      📄 Policy Rules
+    </button>
+  </div>
+
+  <!-- View A: Live Feed Monitor -->
+  <div class="tab-content active" id="tab-feed">
+    <div class="upload-zone" id="upload-zone">
+      <input type="file" id="clip-input" accept="video/*" multiple onchange="handleFiles(this.files)" />
+      <div class="upload-icon">🎬</div>
+      <h3>Drop factory video clips here</h3>
+      <p>Supports MP4, AVI, MOV — clips are analyzed frame-by-frame against OHS policy rules</p>
+    </div>
+    <div class="clip-results" id="clip-results"></div>
+  </div>
+
+  <!-- View B: Alert Timeline -->
+  <div class="tab-content" id="tab-timeline">
+    <div class="timeline-controls">
+      <select class="filter-select" id="timeline-sev-filter" onchange="filterTimeline()">
+        <option value="">All Severities</option>
+        <option value="CRITICAL">CRITICAL</option>
+        <option value="HIGH">HIGH</option>
+        <option value="MEDIUM">MEDIUM</option>
+        <option value="LOW">LOW</option>
+      </select>
+      <select class="filter-select" id="timeline-class-filter" onchange="filterTimeline()">
+        <option value="">All Behavior Classes</option>
+        <option value="Safe Walkway Violation">Safe Walkway Violation</option>
+        <option value="Unauthorized Intervention">Unauthorized Intervention</option>
+        <option value="Opened Panel Cover">Opened Panel Cover</option>
+        <option value="Carrying Overload with Forklift">Forklift Overload</option>
+      </select>
+      <button class="btn btn-ghost" onclick="loadTimeline()">↻ Refresh</button>
+    </div>
+    <div class="timeline-stream" id="timeline-stream">
+      <div class="empty-state">
+        <div class="icon">📡</div>
+        <div>Waiting for compliance events…</div>
+        <div style="margin-top:6px;font-size:12px">Process a video clip to see events appear here in real time</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- View C: Historical Log -->
+  <div class="tab-content" id="tab-log">
+    <div class="log-controls">
+      <select class="filter-select" id="log-sev-filter">
+        <option value="">All Severities</option>
+        <option value="CRITICAL">CRITICAL</option>
+        <option value="HIGH">HIGH</option>
+        <option value="MEDIUM">MEDIUM</option>
+        <option value="LOW">LOW</option>
+      </select>
+      <select class="filter-select" id="log-class-filter">
+        <option value="">All Behavior Classes</option>
+        <option value="Safe Walkway Violation">Safe Walkway Violation</option>
+        <option value="Unauthorized Intervention">Unauthorized Intervention</option>
+        <option value="Opened Panel Cover">Opened Panel Cover</option>
+        <option value="Carrying Overload with Forklift">Forklift Overload</option>
+      </select>
+      <input type="date" class="filter-input" id="log-date-from" placeholder="From date" />
+      <input type="date" class="filter-input" id="log-date-to" placeholder="To date" />
+      <button class="btn btn-primary" onclick="loadLog()">Apply Filters</button>
+      <div class="export-btns">
+        <button class="btn-export" onclick="exportLog('csv')">⬇ CSV</button>
+        <button class="btn-export" onclick="exportLog('json')">⬇ JSON</button>
+      </div>
+    </div>
+    <div class="log-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Severity</th>
+            <th>Timestamp</th>
+            <th>Clip ID</th>
+            <th>Behavior Class</th>
+            <th>Zone</th>
+            <th>Policy Ref</th>
+            <th>Description</th>
+            <th>Escalation</th>
+          </tr>
+        </thead>
+        <tbody id="log-tbody">
+          <tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-muted)">No records yet — process a clip to populate the log</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Policy Rules -->
+  <div class="tab-content" id="tab-policy">
+    <div id="policy-loading" style="text-align:center;padding:40px;color:var(--text-muted)">
+      Loading policy rules…
+    </div>
+    <div class="policy-grid" id="policy-grid" style="display:none"></div>
+  </div>
+</div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────────
+const API = 'http://localhost:8000';
+let timelineEvents = [];
+let ws = null;
+let wsReconnectTimer = null;
+
+// ── Clock ─────────────────────────────────────────────────────────────────────
+function updateClock() {
+  document.getElementById('live-clock').textContent =
+    new Date().toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+function switchTab(id) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => {
+    const ids = ['feed','timeline','log','policy'];
+    b.classList.toggle('active', ids[i] === id);
+  });
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  if (id === 'timeline') loadTimeline();
+  if (id === 'log') loadLog();
+  if (id === 'policy') loadPolicy();
+}
+
+// ── WebSocket (Module 3 real-time alerts) ─────────────────────────────────────
+function connectWS() {
+  const wsUrl = API.replace('http', 'ws') + '/ws/alerts';
+  ws = new WebSocket(wsUrl);
+
+  ws.onopen = () => {
+    document.getElementById('ws-dot').className = 'ws-dot connected';
+    document.getElementById('ws-status').textContent = 'Live';
+  };
+
+  ws.onmessage = (evt) => {
+    const data = JSON.parse(evt.data);
+    if (data.type === 'VIOLATION_ALERT') {
+      handleLiveAlert(data);
+    }
+  };
+
+  ws.onclose = () => {
+    document.getElementById('ws-dot').className = 'ws-dot';
+    document.getElementById('ws-status').textContent = 'Reconnecting…';
+    clearTimeout(wsReconnectTimer);
+    wsReconnectTimer = setTimeout(connectWS, 3000);
+  };
+
+  ws.onerror = () => ws.close();
+}
+
+function handleLiveAlert(data) {
+  // Flash banner for HIGH/CRITICAL
+  const banner = document.getElementById('alert-banner');
+  const txt = document.getElementById('alert-banner-text');
+  txt.textContent = `🚨 ${data.severity} — ${data.behavior_class} detected in ${data.zone} | Clip: ${data.clip_id}`;
+  banner.className = 'visible';
+  document.getElementById('ws-dot').className = 'ws-dot alerting';
+  setTimeout(() => {
+    document.getElementById('ws-dot').className = 'ws-dot connected';
+  }, 4000);
+
+  // Prepend to timeline
+  prependToTimeline(data);
+  updateBadge();
+  loadStats();
+}
+
+function closeBanner() {
+  document.getElementById('alert-banner').className = '';
+}
+
+// ── Stats ─────────────────────────────────────────────────────────────────────
+async function loadStats() {
+  try {
+    const r = await fetch(API + '/api/stats');
+    const d = await r.json();
+    document.getElementById('stat-total').textContent = d.total_events;
+    document.getElementById('stat-low').textContent = d.by_severity.LOW;
+    document.getElementById('stat-medium').textContent = d.by_severity.MEDIUM;
+    document.getElementById('stat-high').textContent = d.by_severity.HIGH;
+    document.getElementById('stat-critical').textContent = d.by_severity.CRITICAL;
+  } catch(e) {}
+}
+loadStats();
+setInterval(loadStats, 15000);
+
+// ── View A: File Upload ───────────────────────────────────────────────────────
+const uploadZone = document.getElementById('upload-zone');
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadZone.classList.remove('dragover');
+  handleFiles(e.dataTransfer.files);
+});
+
+async function handleFiles(files) {
+  for (const file of files) {
+    await processClip(file);
+  }
+}
+
+async function processClip(file) {
+  const results = document.getElementById('clip-results');
+
+  // Create processing card
+  const card = document.createElement('div');
+  card.className = 'clip-card';
+  card.innerHTML = `
+    <div class="clip-card-header">
+      <span class="clip-name">📹 ${file.name}</span>
+      <span class="clip-count" id="count-${sanitize(file.name)}">Processing…</span>
+    </div>
+    <div class="processing-overlay">
+      <div class="spinner"></div>
+      <div>Analyzing frames against KMP-OHS-POL-001…</div>
+      <div style="margin-top:6px;font-size:11px;color:var(--text-muted)">This may take 30–60 seconds</div>
+    </div>`;
+  results.prepend(card);
+
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    const resp = await fetch(API + '/api/process-clip', { method: 'POST', body: formData });
+    const data = await resp.json();
+
+    if (data.error) throw new Error(data.error);
+
+    const violations = data.records || [];
+    const countEl = document.getElementById(`count-${sanitize(file.name)}`);
+    if (countEl) countEl.textContent = violations.length === 0
+      ? '✅ No violations'
+      : `⚠️ ${violations.length} violation${violations.length > 1 ? 's' : ''}`;
+
+    // Replace processing overlay with results
+    const body = card.querySelector('.processing-overlay');
+    if (body) {
+      if (violations.length === 0) {
+        body.outerHTML = `<div class="clip-violations"><div class="no-violation">✅ No compliance violations detected in this clip</div></div>`;
+      } else {
+        body.outerHTML = `<div class="clip-violations">${violations.map(v => `
+          <div class="violation-row ${v.severity}">
+            <div class="v-info">
+              <div class="v-class">${v.behavior_class} <span class="sev-badge ${v.severity}">${v.severity}</span></div>
+              <div class="v-desc">${v.event_description || v.description || ''}</div>
+              <div class="v-meta">
+                Zone: ${v.zone} &nbsp;|&nbsp; ${v.policy_rule_ref} &nbsp;|&nbsp; Conf: ${((v.confidence||0)*100).toFixed(0)}% &nbsp;|&nbsp; ${v.escalation_action}
+              </div>
+            </div>
+          </div>`).join('')}</div>`;
+      }
+    }
+
+    // Update timeline and reload
+    violations.forEach(v => prependToTimeline({...v, behavior_class: v.behavior_class, description: v.event_description}));
+    updateBadge();
+    loadStats();
+    loadLog();
+
+  } catch(e) {
+    const body = card.querySelector('.processing-overlay');
+    if (body) body.innerHTML = `<div style="padding:20px;color:var(--high);text-align:center">Error: ${e.message}<br><small style="color:var(--text-muted)">Make sure the backend is running on port 8000</small></div>`;
+  }
+}
+
+function sanitize(s) { return s.replace(/[^a-zA-Z0-9]/g, '_'); }
+
+// ── View B: Timeline ──────────────────────────────────────────────────────────
+async function loadTimeline() {
+  const sev = document.getElementById('timeline-sev-filter').value;
+  const cls = document.getElementById('timeline-class-filter').value;
+  try {
+    const params = new URLSearchParams();
+    if (sev) params.append('severity', sev);
+    if (cls) params.append('behavior_class', cls);
+    const r = await fetch(API + '/api/events?' + params);
+    const d = await r.json();
+    timelineEvents = d.events || [];
+    renderTimeline();
+    updateBadge();
+  } catch(e) {}
+}
+
+function filterTimeline() { loadTimeline(); }
+
+function prependToTimeline(evt) {
+  timelineEvents.unshift(evt);
+  renderTimeline();
+}
+
+function renderTimeline() {
+  const container = document.getElementById('timeline-stream');
+  if (timelineEvents.length === 0) {
+    container.innerHTML = `<div class="empty-state"><div class="icon">📡</div><div>No events yet</div><div style="margin-top:6px;font-size:12px">Process a video clip to see events appear here</div></div>`;
+    return;
+  }
+  container.innerHTML = timelineEvents.map(e => `
+    <div class="timeline-item ${e.severity || ''}">
+      <span class="sev-badge ${e.severity || 'LOW'}">${e.severity || 'LOW'}</span>
+      <div class="t-body">
+        <div class="t-class">${e.behavior_class || 'Unknown'}</div>
+        <div class="t-desc">${e.description || e.event_description || ''}</div>
+        <div class="t-meta">
+          <span>📍 ${e.zone || 'Zone-Unknown'}</span>
+          <span>🎬 ${e.clip_id || ''}</span>
+          <span>📑 ${e.policy_section || e.policy_rule_ref || ''}</span>
+          <span>🕐 ${formatTs(e.timestamp)}</span>
+          ${e.escalation_action ? `<span>→ ${e.escalation_action}</span>` : ''}
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function updateBadge() {
+  document.getElementById('badge-timeline').textContent = timelineEvents.length;
+}
+
+// ── View C: Historical Log ─────────────────────────────────────────────────────
+async function loadLog() {
+  const sev = document.getElementById('log-sev-filter').value;
+  const cls = document.getElementById('log-class-filter').value;
+  const from = document.getElementById('log-date-from').value;
+  const to = document.getElementById('log-date-to').value;
+
+  const params = new URLSearchParams();
+  if (sev) params.append('severity', sev);
+  if (cls) params.append('behavior_class', cls);
+  if (from) params.append('date_from', from);
+  if (to) params.append('date_to', to);
+
+  try {
+    const r = await fetch(API + '/api/events?' + params);
+    const d = await r.json();
+    renderLog(d.events || []);
+  } catch(e) {}
+}
+
+function renderLog(events) {
+  const tbody = document.getElementById('log-tbody');
+  if (events.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-muted)">No records match the selected filters</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = events.map(e => `
+    <tr>
+      <td><span class="sev-badge ${e.severity}">${e.severity}</span></td>
+      <td class="td-mono">${formatTs(e.timestamp)}</td>
+      <td class="td-mono">${e.clip_id || ''}</td>
+      <td style="font-weight:500">${e.behavior_class || ''}</td>
+      <td class="td-mono">${e.zone || ''}</td>
+      <td class="td-mono">${e.policy_section || e.policy_rule_ref || ''}</td>
+      <td class="td-desc">${e.event_description || ''}</td>
+      <td class="td-mono" style="font-size:10px">${e.escalation_action || ''}</td>
+    </tr>`).join('');
+}
+
+async function exportLog(fmt) {
+  const sev = document.getElementById('log-sev-filter').value;
+  const cls = document.getElementById('log-class-filter').value;
+  const params = new URLSearchParams();
+  if (sev) params.append('severity', sev);
+  if (cls) params.append('behavior_class', cls);
+  window.location.href = `${API}/api/export/${fmt}?${params}`;
+}
+
+// ── Policy Rules ──────────────────────────────────────────────────────────────
+async function loadPolicy() {
+  const loading = document.getElementById('policy-loading');
+  const grid = document.getElementById('policy-grid');
+  try {
+    const r = await fetch(API + '/api/policy-rules');
+    const d = await r.json();
+    loading.style.display = 'none';
+    grid.style.display = 'grid';
+    grid.innerHTML = (d.behavior_classes || []).map(bc => `
+      <div class="policy-card">
+        <h4>
+          <span class="sev-badge ${bc.suggested_severity_tier}">${bc.suggested_severity_tier}</span>
+          Class ${bc.class_id} — ${bc.domain}
+        </h4>
+        <div class="policy-row"><span class="policy-label">Unsafe: </span><span class="policy-value">${bc.unsafe_behavior}</span></div>
+        <div class="policy-row"><span class="policy-label">Safe: </span><span class="policy-value">${bc.safe_behavior}</span></div>
+        <div class="policy-row"><span class="policy-label">Observable indicator: </span><span class="policy-value">${bc.observable_indicator_unsafe}</span></div>
+        <div class="policy-row"><span class="policy-label">Policy section: </span><span class="policy-value">${bc.policy_section}</span></div>
+        <div class="policy-row"><span class="policy-label">Signal: </span>
+          <span class="policy-signal ${bc.severity_signal === 'CRITICAL SAFETY NOTICE' ? 'CRITICAL' : 'WARNING'}">${bc.severity_signal}</span>
+        </div>
+        <div class="policy-row" style="margin-top:8px;font-size:11px;color:var(--text-muted);line-height:1.5">${bc.severity_rationale}</div>
+      </div>`).join('');
+  } catch(e) {
+    loading.textContent = 'Unable to load policy rules — ensure backend is running';
+  }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function formatTs(ts) {
+  if (!ts) return '—';
+  try {
+    return new Date(ts).toLocaleString('en-GB', {
+      day:'2-digit', month:'short', year:'2-digit',
+      hour:'2-digit', minute:'2-digit', second:'2-digit'
+    });
+  } catch(e) { return ts; }
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+connectWS();
+</script>
+</body>
+</html>

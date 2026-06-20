@@ -1,0 +1,34 @@
+# Environment
+.env
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Outputs (runtime generated)
+outputs/compliance_log.db
+outputs/*.json
+outputs/*.csv
+
+# Config (cached policy rules — regenerated on first run)
+config/policy_rules.json
+
+# Video data (too large for git)
+data/*.mp4
+data/*.avi
+data/*.mov
+data/*.mkv
+
+# Node
+node_modules/
+src/dashboard/dist/
+src/dashboard/build/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
